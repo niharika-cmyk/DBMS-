@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Create account — SafeHer</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="app-frame">
+  <div class="topbar">
+    <a class="brand" href="index.html"><span class="dot"></span> SafeHer</a>
+  </div>
+
+  <div class="content auth-wrap">
+    <div class="auth-mark">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3DDC97" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    </div>
+    <h1 class="page-title">Create your account</h1>
+    <p class="page-sub">Set up SafeHer in under a minute — you can add emergency contacts next.</p>
+
+    <form id="registerForm">
+      <div class="field">
+        <label for="name">Full name</label>
+        <input type="text" id="name" placeholder="Ananya Sharma" required>
+      </div>
+      <div class="field">
+        <label for="email">Email</label>
+        <input type="email" id="email" placeholder="you@example.com" required>
+      </div>
+      <div class="field">
+        <label for="phone">Phone number</label>
+        <input type="tel" id="phone" placeholder="+91 98765 43210" required>
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <input type="password" id="password" placeholder="At least 8 characters" minlength="8" required>
+        <div class="field-hint">Stored securely (hashed) on the server.</div>
+      </div>
+      <button type="submit" class="btn btn-primary">Create account</button>
+    </form>
+
+    <p class="form-footer">Already registered? <a href="login.html">Log in</a></p>
+  </div>
+</div>
+
+<script src="script.js"></script>
+<script>
+  document.getElementById('registerForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const name = document.getElementById('name').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const phone = document.getElementById('phone').value.trim();
+    const password = document.getElementById('password').value;
+
+    if (!name || !email || password.length < 8) {
+      showToast('Please fill every field — password needs 8+ characters.');
+      return;
+    }
+
+    try {
+      await registerUser(name, email, phone, password);
+      showToast('Account created — welcome to SafeHer');
+      setTimeout(() => (window.location.href = 'dashboard.html'), 500);
+    } catch (err) {
+      showToast(err.message || 'Could not create account.');
+    }
+  });
+</script>
+</body>
+</html>

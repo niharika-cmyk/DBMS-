@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Log in — SafeHer</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="app-frame">
+  <div class="topbar">
+    <a class="brand" href="index.html"><span class="dot"></span> SafeHer</a>
+  </div>
+
+  <div class="content auth-wrap">
+    <div class="auth-mark">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3DDC97" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    </div>
+    <h1 class="page-title">Welcome back</h1>
+    <p class="page-sub">Log in to reach your emergency contacts and live tracking.</p>
+
+    <form id="loginForm">
+      <div class="field">
+        <label for="email">Email</label>
+        <input type="email" id="email" placeholder="you@example.com" required>
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <input type="password" id="password" placeholder="••••••••" required>
+      </div>
+      <button type="submit" class="btn btn-primary">Log in</button>
+    </form>
+
+    <p class="form-footer">New to SafeHer? <a href="register.html">Create an account</a></p>
+  </div>
+</div>
+
+<script src="script.js"></script>
+<script>
+  document.getElementById('loginForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+
+    try {
+      const user = await loginUser(email, password);
+      showToast(`Welcome back, ${user.name.split(' ')[0]}`);
+      setTimeout(() => (window.location.href = 'dashboard.html'), 500);
+    } catch (err) {
+      showToast(err.message || 'No matching account — check your details or register.');
+    }
+  });
+</script>
+</body>
+</html>

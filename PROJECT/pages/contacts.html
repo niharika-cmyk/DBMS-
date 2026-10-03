@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contacts — SafeHer</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+
+<div class="app-frame">
+  <div class="topbar">
+    <a class="brand" href="../dashboard.html"><span class="dot"></span> SafeHer</a>
+  </div>
+
+  <div class="content">
+    <h1 class="page-title">Emergency contacts</h1>
+    <p class="page-sub">These are the people notified the instant you send an SOS alert.</p>
+
+    <div class="card">
+      <h3>Add a contact</h3>
+      <form id="contactForm" style="margin-top:14px;">
+        <div class="field">
+          <label for="cName">Full name</label>
+          <input type="text" id="cName" placeholder="e.g. Meera Nair" required>
+        </div>
+        <div class="field">
+          <label for="cPhone">Phone number</label>
+          <input type="tel" id="cPhone" placeholder="+91 98765 43210" required>
+        </div>
+        <div class="field">
+          <label for="cRelation">Relationship</label>
+          <select id="cRelation">
+            <option>Parent</option>
+            <option>Sibling</option>
+            <option>Partner</option>
+            <option>Friend</option>
+            <option>Roommate</option>
+            <option>Colleague</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <button type="submit" class="btn btn-primary">Add contact</button>
+      </form>
+    </div>
+
+    <h3 style="margin:22px 0 12px; font-family: var(--font-head); font-size:16px;">Saved contacts</h3>
+    <div id="contactList"></div>
+  </div>
+
+  <nav class="bottom-nav">
+    <a class="nav-item" data-page="dashboard.html" href="../dashboard.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+      Home
+    </a>
+    <a class="nav-item" href="sos.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+      SOS
+    </a>
+    <a class="nav-item active" href="contacts.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+      Contacts
+    </a>
+    <a class="nav-item" href="tracking.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+      Tracking
+    </a>
+    <a class="nav-item" href="history.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+      History
+    </a>
+  </nav>
+</div>
+
+<script src="../script.js"></script>
+<script>
+  guardAuth('../login.html');
+
+  async function render() {
+    const container = document.getElementById('contactList');
+    try {
+      const list = await getContacts();
+      if (!list.length) {
+        container.innerHTML = '<div class="empty-state">No emergency contacts yet. Add your first one above.</div>';
+        return;
+      }
+      container.innerHTML = list.map(c => `
+        <div class="row">
+          <div class="row-avatar">${initials(c.name)}</div>
+          <div class="row-body">
+            <div class="row-title">${c.name}</div>
+            <div class="row-sub">${c.relation} · ${c.phone}</div>
+          </div>
+          <div class="row-actions">
+            <button class="icon-btn" data-remove="${c.id}" title="Remove">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z"/></svg>
+            </button>
+          </div>
+        </div>
+      `).join('');
+
+      container.querySelectorAll('[data-remove]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          try {
+            await removeContact(btn.getAttribute('data-remove'));
+            showToast('Contact removed');
+            render();
+          } catch (err) {
+            showToast(err.message || 'Could not remove contact.');
+          }
+        });
+      });
+    } catch (err) {
+      container.innerHTML = `<div class="empty-state">Could not load contacts: ${err.message}</div>`;
+    }
+  }
+
+  document.getElementById('contactForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const name = document.getElementById('cName').value.trim();
+    const phone = document.getElementById('cPhone').value.trim();
+    const relation = document.getElementById('cRelation').value;
+    if (!name || !phone) return;
+
+    try {
+      await addContact(name, phone, relation);
+      e.target.reset();
+      showToast(`${name} added as an emergency contact`);
+      render();
+    } catch (err) {
+      showToast(err.message || 'Could not add contact.');
+    }
+  });
+
+  render();
+</script>
+</body>
+</html>

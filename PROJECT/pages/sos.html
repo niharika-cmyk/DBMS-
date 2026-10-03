@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SOS — SafeHer</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+
+<div class="app-frame">
+  <div class="topbar">
+    <a class="brand" href="../dashboard.html"><span class="dot"></span> SafeHer</a>
+    <div class="status-pill">Emergency</div>
+  </div>
+
+  <div class="content">
+
+    <!-- STATE 1: ready to trigger -->
+    <div id="stateReady">
+      <h1 class="page-title">Send an SOS alert</h1>
+      <p class="page-sub">This shares your live location with every emergency contact you've added and starts live tracking.</p>
+
+      <div class="sos-hero">
+        <div class="sos-ring">
+          <button class="sos-btn" id="holdBtn">HOLD</button>
+        </div>
+        <p class="sos-caption">Press and hold the button for 3 seconds to send the alert.</p>
+      </div>
+
+      <div class="card">
+        <h3>Who will be notified</h3>
+        <p id="contactsSummary">No contacts yet — add some from the Contacts tab first.</p>
+      </div>
+    </div>
+
+    <!-- STATE 2: sending -->
+    <div id="stateSending" style="display:none;">
+      <div class="sos-countdown">
+        <div class="countdown-ring"><span class="num">!</span></div>
+        <h2 class="page-title" style="margin-top:26px;">Sending alert…</h2>
+        <p class="page-sub" style="text-align:center;">Getting your location and notifying your contacts.</p>
+      </div>
+    </div>
+
+    <!-- STATE 3: active -->
+    <div id="stateActive" style="display:none;">
+      <div class="badge badge-sos" style="margin-bottom:16px;">● SOS ACTIVE</div>
+      <h1 class="page-title">Help is on the way</h1>
+      <p class="page-sub" id="activeSummary">Your emergency contacts have been alerted with your location.</p>
+
+      <div class="card sos-live">
+        <h3>Alert sent to</h3>
+        <p id="alertedList">—</p>
+      </div>
+
+      <div class="card">
+        <h3>Shared location</h3>
+        <p id="alertedCoords">—</p>
+      </div>
+
+      <button class="btn btn-outline" id="cancelBtn" style="margin-top:6px;">I'm safe — cancel SOS</button>
+    </div>
+
+  </div>
+
+  <nav class="bottom-nav">
+    <a class="nav-item" data-page="dashboard.html" href="../dashboard.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+      Home
+    </a>
+    <a class="nav-item active" href="sos.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+      SOS
+    </a>
+    <a class="nav-item" href="contacts.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+      Contacts
+    </a>
+    <a class="nav-item" href="tracking.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+      Tracking
+    </a>
+    <a class="nav-item" href="history.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+      History
+    </a>
+  </nav>
+</div>
+
+<script src="../script.js"></script>
+<script>
+  guardAuth('../login.html');
+
+  const stateReady = document.getElementById('stateReady');
+  const stateSending = document.getElementById('stateSending');
+  const stateActive = document.getElementById('stateActive');
+  const holdBtn = document.getElementById('holdBtn');
+
+  let holdTimer = null;
+
+  function startHold() {
+    holdBtn.textContent = 'HOLD…';
+    holdTimer = setTimeout(sendAlert, 3000);
+  }
+  function cancelHold() {
+    clearTimeout(holdTimer);
+    holdBtn.textContent = 'HOLD';
+  }
+  holdBtn.addEventListener('mousedown', startHold);
+  holdBtn.addEventListener('touchstart', startHold);
+  holdBtn.addEventListener('mouseup', cancelHold);
+  holdBtn.addEventListener('mouseleave', cancelHold);
+  holdBtn.addEventListener('touchend', cancelHold);
+
+  async function sendAlert() {
+    stateReady.style.display = 'none';
+    stateSending.style.display = 'block';
+
+    try {
+      const { contacts, coordsLabel } = await triggerSosAlert();
+
+      stateSending.style.display = 'none';
+      stateActive.style.display = 'block';
+
+      document.getElementById('alertedList').textContent = contacts.length
+        ? contacts.map(c => `${c.name} (${c.relation})`).join(', ')
+        : 'No contacts saved — add contacts so alerts reach someone.';
+      document.getElementById('alertedCoords').textContent = coordsLabel;
+    } catch (err) {
+      stateSending.style.display = 'none';
+      stateReady.style.display = 'block';
+      showToast(err.message || 'Could not send SOS alert.');
+    }
+  }
+
+  document.getElementById('cancelBtn').addEventListener('click', async () => {
+    try {
+      await cancelSos();
+      showToast('Marked as safe. Contacts will see the update.');
+      setTimeout(() => (window.location.href = '../dashboard.html'), 700);
+    } catch (err) {
+      showToast(err.message || 'Could not cancel SOS.');
+    }
+  });
+
+  // On load: show contact summary, and resume "active" state if SOS was already on.
+  (async function init() {
+    try {
+      const contacts = await getContacts();
+      const summaryEl = document.getElementById('contactsSummary');
+      if (contacts.length) {
+        summaryEl.textContent = contacts.map(c => c.name).join(', ');
+      }
+
+      const status = await getSosStatus();
+      if (status.sosActive) {
+        stateReady.style.display = 'none';
+        stateActive.style.display = 'block';
+        document.getElementById('alertedList').textContent = contacts.length
+          ? contacts.map(c => `${c.name} (${c.relation})`).join(', ')
+          : 'No contacts saved.';
+        document.getElementById('alertedCoords').textContent = status.lastLocation
+          ? `${status.lastLocation.lat}, ${status.lastLocation.lng}`
+          : '—';
+      }
+    } catch (err) {
+      showToast(err.message || 'Could not load SOS status.');
+    }
+  })();
+</script>
+</body>
+</html>
